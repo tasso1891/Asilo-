@@ -184,13 +184,15 @@ function evsCard(edit,seen){
   const ev=upEvs();if(!ev.length&&!edit)return '';
   return `<div class="evs"><h3>📌 Da segnare sul calendario</h3>${ev.length?ev.map(e=>`<div class="evi"><div class="evd"><b>${esc(fmt(e.data,{day:'numeric'}))}</b><span>${esc(fmt(e.data,{month:'short'}))}</span></div><div><div class="evt">${esc(e.titolo)} ${seen&&+e.ts>seen?NB:''}</div><div class="evm">${esc(fmt(e.data,{weekday:'long'}))}${e.ora?` · ore ${esc(e.ora)}`:''}${e.luogo?` · ${esc(e.luogo)}`:''}</div>${e.note?`<div class="small">${esc(e.note)}</div>`:''}<span class="cd">${esc(countdown(e.data))}</span></div>${edit?`<button class="del" data-del-ev="${esc(e.id)}">${S.armed===e.id?'Conferma':'Elimina'}</button>`:''}</div>`).join(''):'<p class="empty">Nessun evento in programma.</p>'}</div>`;
 }
+const msgOf=k=>{const n=String(k.nome).trim().split(/\s+/)[0];return `Ciao! 🌟 Questo è il diario dell'asilo di ${n}.\nOgni giorno qui trovate com'è andata la giornata (pranzo, nanna, umore, cosa portare), il menù e gli avvisi delle maestre.\n\n👉 ${linkOf(k)}\n\nConsiglio: apritelo con Safari, toccate il tasto Condividi e scegliete "Aggiungi alla schermata Home", così lo avete come un'app.\n\nIl link è solo per voi, per favore non inoltratelo ad altri. Grazie!\nLe maestre`};
 const linkOf=k=>k.codice?URL0+'#b-'+k.codice:'';
 let unWeek=null,weekKey='';S.week={};S.menuDirty=false;
 const mondayOf=d=>{const x=fromIso(d),w=(x.getDay()+6)%7;x.setDate(x.getDate()-w);return iso(x)};
 const flash=t=>{const f=$('#flash');f.textContent=t;f.classList.add('on');clearTimeout(flash.t);flash.t=setTimeout(()=>f.classList.remove('on'),2200)};
 const kidName=id=>(S.kids.find(k=>k.id===id)||{}).nome||'Bambino';
 const sortedKids=()=>[...S.kids].sort((a,b)=>String(a.nome).localeCompare(String(b.nome),'it'));
-const isT=()=>S.teacher&&!S.preview;
+const isT=()=>S.teacher&&!S.preview&&!S.code;
+const asT=()=>S.teacher&&!S.code;
 const caccaTxt=v=>v==null||v===''?'—':v==='0'||v===0?'No':v==='1'||v===1?'Sì':v==='3'?'3 o più':v+' volte';
 const IC={
 pranzo:'<svg viewBox="0 0 40 40"><circle cx="20" cy="22" r="13" fill="#fff" stroke="currentColor" stroke-width="2.5"/><circle cx="20" cy="22" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 6v10M3 6v6a2 2 0 004 0V6M35 6c-3 2-3 8 0 10v14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
@@ -327,7 +329,7 @@ function loginView(){
 function head(){
   drawScene();
   $('#dlab').textContent=fmt(S.date,innerWidth<520?{weekday:'short',day:'numeric',month:'short'}:undefined)+(S.date===iso(new Date())?' · oggi':'');
-  const r=$('#role');r.hidden=!S.teacher;r.textContent=S.preview?'Vista genitore · torna maestra':'Vista maestra · prova come genitore';
+  const r=$('#role');r.hidden=!S.teacher;r.textContent=S.code?'Link genitore · torna maestra':S.preview?'Vista genitore · torna maestra':'Vista maestra · prova come genitore';
   const o=$('#logout');if(o)o.hidden=!S.teacher;
 }
 function render(){
@@ -454,7 +456,7 @@ function tKids(){
   return `<section class="card hero"><h2>Bambini della sezione</h2><form id="kidf"><div class="two"><div><label for="k_n">Nome</label><input id="k_n" required placeholder="Giulia R."></div><div><label for="k_s">Sezione</label><input id="k_s" placeholder="Pulcini"></div></div>
   <label for="k_a">Allergie o note alimentari</label><input id="k_a" placeholder="Nessuna"><button class="btn">Aggiungi bambino</button></form>
   <p class="small">Ogni bambino ha un link personale: mandalo solo ai suoi genitori (WhatsApp, email…). Con quel link vedono solo il loro bambino.</p>
-  <div class="list">${kids.map(k=>`<div class="ev"><div>${av(k)}</div><div><b style="font:600 19px Fredoka,sans-serif">${esc(k.nome)}</b>${k.sezione?`<div class="small">${esc(k.sezione)}</div>`:''}${k.allergie?`<div class="small">${esc(k.allergie)}</div>`:''}<label for="avs-${esc(k.id)}" style="margin-top:8px">Disegno</label><select id="avs-${esc(k.id)}" data-avsel="${esc(k.id)}" style="max-width:220px"><option value="">Iniziale del nome</option>${Object.entries(AVS).map(([v,a])=>`<option value="${v}"${k.avatar===v?' selected':''}>${a.n}</option>`).join('')}</select>${k.codice?`<div class="small" style="overflow-wrap:anywhere;user-select:all">${esc(linkOf(k))}</div><button class="btn g" style="margin-top:8px" data-copy="${esc(k.id)}">Copia link genitore</button> <button class="del" data-mklink="${esc(k.id)}">${S.armed==='L'+k.id?'Conferma nuovo link':'Cambia link'}</button>`:`<button class="btn g" style="margin-top:8px" data-mklink="${esc(k.id)}">Crea link genitore</button>`}</div><button class="del" data-del-kid="${esc(k.id)}">${S.armed===k.id?'Conferma':'Elimina'}</button></div>`).join('')||`<p class="empty">Ancora nessun bambino.</p><button class="btn g" data-seed="1">Importa i 10 bambini</button>`}</div></section>`;
+  <div class="list">${kids.map(k=>`<div class="ev"><div>${av(k)}</div><div><b style="font:600 19px Fredoka,sans-serif">${esc(k.nome)}</b>${k.sezione?`<div class="small">${esc(k.sezione)}</div>`:''}${k.allergie?`<div class="small">${esc(k.allergie)}</div>`:''}<label for="avs-${esc(k.id)}" style="margin-top:8px">Disegno</label><select id="avs-${esc(k.id)}" data-avsel="${esc(k.id)}" style="max-width:220px"><option value="">Iniziale del nome</option>${Object.entries(AVS).map(([v,a])=>`<option value="${v}"${k.avatar===v?' selected':''}>${a.n}</option>`).join('')}</select>${k.codice?`<div class="small" style="overflow-wrap:anywhere;user-select:all">${esc(linkOf(k))}</div><button class="btn g" style="margin-top:8px" data-copymsg="${esc(k.id)}">Copia messaggio per i genitori</button> <button class="btn g" style="margin-top:8px" data-copy="${esc(k.id)}">Copia solo link</button> <button class="del" data-mklink="${esc(k.id)}">${S.armed==='L'+k.id?'Conferma nuovo link':'Cambia link'}</button>`:`<button class="btn g" style="margin-top:8px" data-mklink="${esc(k.id)}">Crea link genitore</button>`}</div><button class="del" data-del-kid="${esc(k.id)}">${S.armed===k.id?'Conferma':'Elimina'}</button></div>`).join('')||`<p class="empty">Ancora nessun bambino.</p><button class="btn g" data-seed="1">Importa i 10 bambini</button>`}</div></section>`;
 }
 function pendingMsgs(){
   const from=addDays(iso(new Date()),-1);
@@ -470,7 +472,7 @@ function setDate(d){S.date=d;S.menuDirty=false;S.dirty.clear();S.open.clear();su
 $('#prev').onclick=()=>setDate(addDays(S.date,-1));
 $('#next').onclick=()=>setDate(addDays(S.date,1));
 $('#today').onclick=()=>setDate(iso(new Date()));
-$('#role').onclick=()=>{S.preview=!S.preview;render()};
+$('#role').onclick=()=>{if(S.code){history.replaceState(null,'',location.pathname);S.code=null;start();return}S.preview=!S.preview;render()};
 const safe=async(fn,ok)=>{try{await fn();if(ok)flash(ok)}catch(e){flash(e&&e.code==='quota_exceeded'?'Spazio esaurito: elimina vecchi dati':'Non salvato: '+(e&&e.code==='invalid_argument'?'permesso mancante':'riprova'))}};
 
 document.addEventListener('click',ev=>{
@@ -489,6 +491,7 @@ document.addEventListener('click',ev=>{
   if(b.dataset.seed){b.disabled=true;safe(async()=>{for(const k of SEED)await S.db.doc('famiglie/'+k.codice).set({...k,sezione:'',allergie:''})},'Bambini importati');return}
   if(b.id==='logout'){firebase.auth().signOut();return}
   if(b.dataset.save){saveKid(b.dataset.save);return}
+  if(b.dataset.copymsg){const k=S.kids.find(x=>x.id===b.dataset.copymsg);if(k)navigator.clipboard.writeText(msgOf(k)).then(()=>flash('Messaggio copiato: incollalo su WhatsApp'),()=>flash('Copia non riuscita'));return}
   if(b.dataset.copy){const k=S.kids.find(x=>x.id===b.dataset.copy);if(k)navigator.clipboard.writeText(linkOf(k)).then(()=>flash('Link copiato: '+k.nome),()=>flash('Tieni premuto sul link per copiarlo'));return}
   if(b.dataset.mklink){const k=S.kids.find(x=>x.id===b.dataset.mklink);if(!k)return;
     if(k.codice&&S.armed!=='L'+k.id){S.armed='L'+k.id;render();return}
@@ -551,16 +554,16 @@ let daySubs=[],extraSubs=[],kidKey='';
 function subDay(){
   if(!S.db)return;
   daySubs.forEach(u=>u());daySubs=[];S.diary={};S.menu=null;
-  const ids=S.teacher?S.kids.map(k=>k.id):(S.code?[S.code]:[]);
+  const ids=asT()?S.kids.map(k=>k.id):(S.code?[S.code]:[]);
   ids.forEach(id=>daySubs.push(S.db.doc(`famiglie/${id}/diario/${S.date}`).onSnapshot(d=>{if(d.exists)S.diary[id]={id:d.id,...d.data()};else delete S.diary[id];rerender()},()=>{})));
   daySubs.push(S.db.doc('menu/'+S.date).onSnapshot(d=>{S.menu=d.exists?d.data():null;rerender()},()=>{}));
   const mon=mondayOf(S.date);
-  if(S.teacher&&mon!==weekKey){weekKey=mon;unWeek&&unWeek();S.week={};
+  if(asT()&&mon!==weekKey){weekKey=mon;unWeek&&unWeek();S.week={};
     unWeek=S.db.collection('menu').where('data','>=',mon).where('data','<=',addDays(mon,4)).onSnapshot(sn=>{S.week={};rows(sn).forEach(r=>S.week[r.data]=r);rerender()},()=>{})}
 }
 function subExtra(){
   extraSubs.forEach(u=>u());extraSubs=[];const all={};
-  const ids=S.teacher?S.kids.map(k=>k.id):(S.code?[S.code]:[]);
+  const ids=asT()?S.kids.map(k=>k.id):(S.code?[S.code]:[]);
   ids.forEach(id=>extraSubs.push(S.db.doc(`famiglie/${id}/extra/avvisi`).onSnapshot(d=>{const it=d.exists&&Array.isArray(d.data().items)?d.data().items:[];all[id]=it.map(m=>({...m,bambino:id}));
     S.msgs=Object.values(all).flat();if(id===S.code||(!S.code&&id===S.child))S.mine=all[id];rerender()},()=>{})));
 }
@@ -578,7 +581,7 @@ function start(){
   S.kids=[];S.loaded=false;S.warn='';render();
   const db=S.db;const timer=setTimeout(()=>{if(!S.loaded){S.warn='Il diario non risponde ancora: controlla la connessione.';render()}},10000);
   const ok=()=>{S.loaded=true;clearTimeout(timer);S.warn=''};
-  if(S.teacher){
+  if(asT()){
     mainSubs.push(db.collection('famiglie').onSnapshot(s=>{S.kids=rows(s);ok();kidsChanged();rerender()},e=>{clearTimeout(timer);S.loaded=true;S.warn='Questa email non è abilitata come maestra.';render()}));
   }else if(S.code){
     mainSubs.push(db.doc('famiglie/'+S.code).onSnapshot(d=>{S.kids=d.exists?[{id:d.id,...d.data()}]:[];ok();kidsChanged();rerender()},()=>{clearTimeout(timer);fail()}));
@@ -586,7 +589,7 @@ function start(){
   mainSubs.push(db.collection('eventi').onSnapshot(s=>{S.evs=rows(s);rerender()},()=>{}));
   mainSubs.push(db.collection('attivita').orderBy('data').limit(400).onSnapshot(s=>{S.acts=rows(s);rerender()},()=>{}));
 }
-window.addEventListener('hashchange',()=>{if(!S.teacher)start()});
+window.addEventListener('hashchange',()=>{weekKey='';start()});
 try{
   if(firebaseConfig.apiKey==='INCOLLA-QUI')throw new Error('cfg');
   firebase.initializeApp(firebaseConfig);S.db=firebase.firestore();
