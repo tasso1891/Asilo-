@@ -143,6 +143,11 @@ summary .n{font:600 20px Fredoka,sans-serif;flex:1 1 8em}
 .evd b{display:block;font:600 26px Fredoka,sans-serif}.evd span{font-weight:800;font-size:13px;text-transform:uppercase}
 .evt{font:600 20px/1.2 Fredoka,sans-serif}.evm{font-weight:700;color:var(--i6);text-transform:none}
 .cd{display:inline-block;margin-top:6px;font-size:12px;font-weight:800;background:#fff1b8;color:#8a6d1f;border-radius:99px;padding:2px 10px}
+.kr{padding:14px;border-radius:22px;background:var(--bg);border:2px solid light-dark(#2d2a4a22,#ffffff22)}
+.kr.open{border-color:#cfc3ee;box-shadow:0 4px 0 var(--sh)}
+.krh{display:flex;align-items:center;gap:12px}.krn{flex:1;display:grid;gap:2px}.krn b{font:600 20px/1.15 Fredoka,sans-serif}
+.kbtn{margin:0;flex:none}
+.kdanger{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:14px;padding-top:10px;border-top:1px dashed #e4dcf5}
 </style></head><body>
 <header class="top">
   <div class="row"><h1>Diario dell'asilo</h1><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="role" id="logout" hidden>Esci</button></span></div>
@@ -416,7 +421,7 @@ function kidCard(k){
   const pills=e.assente?'<span class="pill w">Assente</span>':S.diary[k.id]?`<span class="pill ok">Compilato</span>${e.cacca&&e.cacca!=='0'?'<span class="pill">Cacca ✓</span>':''}`:'<span class="pill">Da compilare</span>';
   const msg=pendingMsgs().filter(m=>m.data===S.date&&m.bambino===k.id).length?'<span class="pill w">Avviso genitore</span>':'';
   return `<details class="kid" data-kid="${esc(k.id)}"${S.open.has(k.id)?' open':''}><summary>${av(k,1)}<span class="n">${esc(k.nome)}</span>${msg}${pills}</summary><div class="body">
-  ${k.allergie?`<p class="chip" style="display:inline-block">Attenzione: ${esc(k.allergie)}</p>`:''}
+  ${k.allergie?`<p class="chip" style="display:inline-block">Attenzione: ${esc(k.allergie)}</p>`:''}${k.ritiro?`<p class="small">Ritiro: ${esc(k.ritiro)}</p>`:''}
   <label>Presenza</label>${seg('assente',[['no','Presente'],['si','Assente']],e.assente?'si':'no')}
   <label style="font-size:16px;margin-top:18px">Pranzo</label>${PORT.map(([k,l])=>`<label class="sl">${l}</label>${seg('p_'+k,PRANZO,(e.pasto||{})[k])}`).join('')}
   <label>Merenda</label>${seg('merenda',PRANZO,e.merenda)}
@@ -452,10 +457,24 @@ function tMenu(){
 }
 function tKids(){
   const kids=sortedKids();
+  const F=(k,id,l,ph,v)=>`<label for="${id}-${esc(k.id)}">${l}</label><input id="${id}-${esc(k.id)}" data-kf="${id}" value="${esc(v||'')}" placeholder="${ph}">`;
+  const row=k=>{const ed=S.editKid===k.id;return `<div class="kr${ed?' open':''}">
+    <div class="krh">${av(k)}<div class="krn"><b>${esc(k.nome)}</b>${k.sezione?`<span class="small">${esc(k.sezione)}</span>`:''}</div><button class="btn g kbtn" data-edit="${esc(k.id)}">${ed?'Chiudi':'Modifica'}</button></div>
+    ${k.allergie?`<p class="chip" style="display:inline-block;margin:10px 0 0">Attenzione: ${esc(k.allergie)}</p>`:''}
+    ${ed?`<form class="kedit" data-kedit="${esc(k.id)}">${F(k,'nome','Nome e cognome','Giulia Rossi',k.nome)}
+      <label for="avatar-${esc(k.id)}">Disegno</label><select id="avatar-${esc(k.id)}" data-kf="avatar"><option value="">Iniziale del nome</option>${Object.entries(AVS).map(([v,a])=>`<option value="${v}"${k.avatar===v?' selected':''}>${a.n}</option>`).join('')}</select>
+      ${F(k,'sezione','Sezione','Pulcini',k.sezione)}${F(k,'allergie','Allergie o note alimentari','Nessuna',k.allergie)}
+      ${F(k,'ritiro','Chi può venire a prenderlo','Mamma, papà, nonna Maria',k.ritiro)}${F(k,'telefoni','Telefoni dei genitori','Mamma 333…, papà 347…',k.telefoni)}
+      <label for="note-${esc(k.id)}">Altre note per le maestre</label><textarea id="note-${esc(k.id)}" data-kf="note" placeholder="Abitudini, ciuccio, nanna…">${esc(k.note||'')}</textarea>
+      <button class="btn">Salva</button>
+      <div class="kdanger"><button type="button" class="del" data-mklink="${esc(k.id)}">${S.armed==='L'+k.id?'Conferma nuovo link':'Cambia link'}</button><button type="button" class="del" data-del-kid="${esc(k.id)}">${S.armed===k.id?'Conferma eliminazione':'Elimina bambino'}</button></div></form>`
+      :`${k.ritiro||k.telefoni?`<div class="small" style="margin-top:8px">${k.ritiro?`Ritiro: ${esc(k.ritiro)}`:''}${k.ritiro&&k.telefoni?' · ':''}${k.telefoni?`Tel: ${esc(k.telefoni)}`:''}</div>`:''}
+      <button class="btn g" style="margin-top:12px" data-copymsg="${esc(k.id)}">Copia messaggio per i genitori</button>`}
+  </div>`};
   return `<section class="card hero"><h2>Bambini della sezione</h2><form id="kidf"><div class="two"><div><label for="k_n">Nome</label><input id="k_n" required placeholder="Giulia R."></div><div><label for="k_s">Sezione</label><input id="k_s" placeholder="Pulcini"></div></div>
   <label for="k_a">Allergie o note alimentari</label><input id="k_a" placeholder="Nessuna"><button class="btn">Aggiungi bambino</button></form>
-  <p class="small">Ogni bambino ha un link personale: mandalo solo ai suoi genitori (WhatsApp, email…). Con quel link vedono solo il loro bambino.</p>
-  <div class="list">${kids.map(k=>`<div class="ev"><div>${av(k)}</div><div><b style="font:600 19px Fredoka,sans-serif">${esc(k.nome)}</b>${k.sezione?`<div class="small">${esc(k.sezione)}</div>`:''}${k.allergie?`<div class="small">${esc(k.allergie)}</div>`:''}<label for="avs-${esc(k.id)}" style="margin-top:8px">Disegno</label><select id="avs-${esc(k.id)}" data-avsel="${esc(k.id)}" style="max-width:220px"><option value="">Iniziale del nome</option>${Object.entries(AVS).map(([v,a])=>`<option value="${v}"${k.avatar===v?' selected':''}>${a.n}</option>`).join('')}</select>${k.codice?`<div class="small" style="overflow-wrap:anywhere;user-select:all">${esc(linkOf(k))}</div><button class="btn g" style="margin-top:8px" data-copymsg="${esc(k.id)}">Copia messaggio per i genitori</button> <button class="del" data-mklink="${esc(k.id)}">${S.armed==='L'+k.id?'Conferma nuovo link':'Cambia link'}</button>`:`<button class="btn g" style="margin-top:8px" data-mklink="${esc(k.id)}">Crea link genitore</button>`}</div><button class="del" data-del-kid="${esc(k.id)}">${S.armed===k.id?'Conferma':'Elimina'}</button></div>`).join('')||`<p class="empty">Ancora nessun bambino.</p><button class="btn g" data-seed="1">Importa i 10 bambini</button>`}</div></section>`;
+  <p class="small">Ogni bambino ha un link personale: con "Copia messaggio per i genitori" lo mandi solo alla sua famiglia.</p>
+  <div class="list">${kids.map(row).join('')||`<p class="empty">Ancora nessun bambino.</p><button class="btn g" data-seed="1">Importa i 10 bambini</button>`}</div></section>`;
 }
 function pendingMsgs(){
   const from=addDays(iso(new Date()),-1);
@@ -489,6 +508,7 @@ document.addEventListener('click',ev=>{
     const items=S.mine.filter(m=>String(m.ts)!==t);safe(()=>S.db.doc(`famiglie/${S.child}/extra/avvisi`).set({items}),'Avviso eliminato');return}
   if(b.dataset.seed){b.disabled=true;safe(async()=>{for(const k of SEED)await S.db.doc('famiglie/'+k.codice).set({...k,sezione:'',allergie:''})},'Bambini importati');return}
   if(b.id==='logout'){firebase.auth().signOut();return}
+  if(b.dataset.edit){S.editKid=S.editKid===b.dataset.edit?null:b.dataset.edit;S.armed=null;render();return}
   if(b.dataset.save){saveKid(b.dataset.save);return}
   if(b.dataset.copymsg){const k=S.kids.find(x=>x.id===b.dataset.copymsg);if(k)navigator.clipboard.writeText(msgOf(k)).then(()=>flash('Messaggio copiato: incollalo su WhatsApp'),()=>flash('Copia non riuscita'));return}
   if(b.dataset.copy){const k=S.kids.find(x=>x.id===b.dataset.copy);if(k)navigator.clipboard.writeText(linkOf(k)).then(()=>flash('Link copiato: '+k.nome),()=>flash('Tieni premuto sul link per copiarlo'));return}
@@ -498,7 +518,7 @@ document.addEventListener('click',ev=>{
   const da=b.dataset.delAct,dk=b.dataset.delKid,de=b.dataset.delEv,id=da||dk||de;
   if(id){if(S.armed!==id){S.armed=id;render();return}S.armed=null;safe(()=>S.db.doc((da?'attivita/':de?'eventi/':'famiglie/')+id).delete(),'Eliminato');return}
 });
-document.addEventListener('input',ev=>{if(ev.target.closest('#menuf')){S.menuDirty=true;return}const k=ev.target.closest('[data-kid]');if(k)S.dirty.add(k.dataset.kid)});
+document.addEventListener('input',ev=>{if(ev.target.closest('.kedit'))S.kDirty=true;if(ev.target.closest('#menuf')){S.menuDirty=true;return}const k=ev.target.closest('[data-kid]');if(k)S.dirty.add(k.dataset.kid)});
 document.addEventListener('toggle',ev=>{const d=ev.target;if(d.matches&&d.matches('details.kid')){d.open?S.open.add(d.dataset.kid):S.open.delete(d.dataset.kid)}},true);
 document.addEventListener('change',ev=>{const as=ev.target.dataset&&ev.target.dataset.avsel;if(as){safe(()=>S.db.doc('famiglie/'+as).update({avatar:ev.target.value}),'Disegno cambiato');return}
   if(ev.target.id==='pick'){S.child=ev.target.value;try{localStorage.setItem('asilo-child',S.child)}catch(e){}render()}});
@@ -529,6 +549,9 @@ document.addEventListener('submit',async ev=>{
   if(f.id==='evf'){await safe(()=>S.db.collection('eventi').add({titolo:v('e_tit'),data:v('e_data'),ora:v('e_ora'),luogo:v('e_luogo'),note:v('e_note'),ts:Date.now()}),'Evento aggiunto');f.reset();const dd=f.querySelector('#e_data');if(dd)dd.value=S.date}
   if(f.id==='loginf'){const er=f.querySelector('#l_err');er.textContent='Accesso in corso…';
     try{await firebase.auth().signInWithEmailAndPassword(v('l_e'),f.querySelector('#l_p').value)}catch(e){er.textContent='Email o password non corrette.'}return}
+  if(f.dataset.kedit){const id=f.dataset.kedit,d={};f.querySelectorAll('[data-kf]').forEach(x=>d[x.dataset.kf]=x.value.trim());
+    if(!d.nome){flash('Il nome non può essere vuoto');return}
+    await safe(()=>S.db.doc('famiglie/'+id).update(d),'Salvato: '+d.nome);S.editKid=null;S.kDirty=false;render();return}
   if(f.id==='kidf'&&v('k_n')){const c=newCode();await safe(()=>S.db.doc('famiglie/'+c).set({nome:v('k_n'),sezione:v('k_s'),allergie:v('k_a'),codice:c}),'Bambino aggiunto');f.reset()}
   if(f.id==='mform'&&v('mx')&&S.child){
     const items=[...S.mine,{tipo:v('mt'),data:v('md'),testo:v('mx'),bambino:S.child,ts:Date.now()}].slice(-30);
@@ -540,6 +563,7 @@ document.addEventListener('submit',async ev=>{
 const rows=snap=>snap.docs.filter(d=>d.exists).map(d=>({id:d.id,...d.data()}));
 const fail=()=>{S.loaded=true;S.warn='Non riesco a leggere il diario adesso.';render()};
 function rerender(){
+  if(isT()&&S.tab==='bimbi'&&S.editKid&&S.kDirty)return;
   if(isT()&&S.tab==='menu'&&S.menuDirty)return;
   // non cancellare i moduli che la maestra sta compilando
   if(isT()&&S.tab==='diario'&&S.dirty.size){
