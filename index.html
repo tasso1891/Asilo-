@@ -145,7 +145,7 @@ summary .n{font:600 20px Fredoka,sans-serif;flex:1 1 8em}
 .cd{display:inline-block;margin-top:6px;font-size:12px;font-weight:800;background:#fff1b8;color:#8a6d1f;border-radius:99px;padding:2px 10px}
 </style></head><body>
 <header class="top">
-  <div class="row"><h1>Diario dell'asilo</h1><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="role" id="role" hidden></button><button class="role" id="logout" hidden>Esci</button></span></div>
+  <div class="row"><h1>Diario dell'asilo</h1><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="role" id="logout" hidden>Esci</button></span></div>
   <svg class="scene" id="scene" viewBox="0 0 900 110" preserveAspectRatio="xMinYMax slice" aria-hidden="true"></svg>
 </header>
 <div class="navw"><div class="nav"><button class="nb" id="prev" aria-label="Giorno precedente">‹</button><div class="d" id="dlab"></div><button class="nb" id="next" aria-label="Giorno successivo">›</button><button class="nb t" id="today">Oggi</button></div></div>
@@ -329,8 +329,7 @@ function loginView(){
 function head(){
   drawScene();
   $('#dlab').textContent=fmt(S.date,innerWidth<520?{weekday:'short',day:'numeric',month:'short'}:undefined)+(S.date===iso(new Date())?' · oggi':'');
-  const r=$('#role');r.hidden=!S.teacher;r.textContent=S.code?'Link genitore · torna maestra':S.preview?'Vista genitore · torna maestra':'Vista maestra · prova come genitore';
-  const o=$('#logout');if(o)o.hidden=!S.teacher;
+  const o=$('#logout');if(o)o.hidden=!S.teacher||!!S.code;
 }
 function render(){
   head();
@@ -456,7 +455,7 @@ function tKids(){
   return `<section class="card hero"><h2>Bambini della sezione</h2><form id="kidf"><div class="two"><div><label for="k_n">Nome</label><input id="k_n" required placeholder="Giulia R."></div><div><label for="k_s">Sezione</label><input id="k_s" placeholder="Pulcini"></div></div>
   <label for="k_a">Allergie o note alimentari</label><input id="k_a" placeholder="Nessuna"><button class="btn">Aggiungi bambino</button></form>
   <p class="small">Ogni bambino ha un link personale: mandalo solo ai suoi genitori (WhatsApp, email…). Con quel link vedono solo il loro bambino.</p>
-  <div class="list">${kids.map(k=>`<div class="ev"><div>${av(k)}</div><div><b style="font:600 19px Fredoka,sans-serif">${esc(k.nome)}</b>${k.sezione?`<div class="small">${esc(k.sezione)}</div>`:''}${k.allergie?`<div class="small">${esc(k.allergie)}</div>`:''}<label for="avs-${esc(k.id)}" style="margin-top:8px">Disegno</label><select id="avs-${esc(k.id)}" data-avsel="${esc(k.id)}" style="max-width:220px"><option value="">Iniziale del nome</option>${Object.entries(AVS).map(([v,a])=>`<option value="${v}"${k.avatar===v?' selected':''}>${a.n}</option>`).join('')}</select>${k.codice?`<div class="small" style="overflow-wrap:anywhere;user-select:all">${esc(linkOf(k))}</div><button class="btn g" style="margin-top:8px" data-copymsg="${esc(k.id)}">Copia messaggio per i genitori</button> <button class="btn g" style="margin-top:8px" data-copy="${esc(k.id)}">Copia solo link</button> <button class="del" data-mklink="${esc(k.id)}">${S.armed==='L'+k.id?'Conferma nuovo link':'Cambia link'}</button>`:`<button class="btn g" style="margin-top:8px" data-mklink="${esc(k.id)}">Crea link genitore</button>`}</div><button class="del" data-del-kid="${esc(k.id)}">${S.armed===k.id?'Conferma':'Elimina'}</button></div>`).join('')||`<p class="empty">Ancora nessun bambino.</p><button class="btn g" data-seed="1">Importa i 10 bambini</button>`}</div></section>`;
+  <div class="list">${kids.map(k=>`<div class="ev"><div>${av(k)}</div><div><b style="font:600 19px Fredoka,sans-serif">${esc(k.nome)}</b>${k.sezione?`<div class="small">${esc(k.sezione)}</div>`:''}${k.allergie?`<div class="small">${esc(k.allergie)}</div>`:''}<label for="avs-${esc(k.id)}" style="margin-top:8px">Disegno</label><select id="avs-${esc(k.id)}" data-avsel="${esc(k.id)}" style="max-width:220px"><option value="">Iniziale del nome</option>${Object.entries(AVS).map(([v,a])=>`<option value="${v}"${k.avatar===v?' selected':''}>${a.n}</option>`).join('')}</select>${k.codice?`<div class="small" style="overflow-wrap:anywhere;user-select:all">${esc(linkOf(k))}</div><button class="btn g" style="margin-top:8px" data-copymsg="${esc(k.id)}">Copia messaggio per i genitori</button> <button class="del" data-mklink="${esc(k.id)}">${S.armed==='L'+k.id?'Conferma nuovo link':'Cambia link'}</button>`:`<button class="btn g" style="margin-top:8px" data-mklink="${esc(k.id)}">Crea link genitore</button>`}</div><button class="del" data-del-kid="${esc(k.id)}">${S.armed===k.id?'Conferma':'Elimina'}</button></div>`).join('')||`<p class="empty">Ancora nessun bambino.</p><button class="btn g" data-seed="1">Importa i 10 bambini</button>`}</div></section>`;
 }
 function pendingMsgs(){
   const from=addDays(iso(new Date()),-1);
@@ -472,7 +471,7 @@ function setDate(d){S.date=d;S.menuDirty=false;S.dirty.clear();S.open.clear();su
 $('#prev').onclick=()=>setDate(addDays(S.date,-1));
 $('#next').onclick=()=>setDate(addDays(S.date,1));
 $('#today').onclick=()=>setDate(iso(new Date()));
-$('#role').onclick=()=>{if(S.code){history.replaceState(null,'',location.pathname);S.code=null;start();return}S.preview=!S.preview;render()};
+
 const safe=async(fn,ok)=>{try{await fn();if(ok)flash(ok)}catch(e){flash(e&&e.code==='quota_exceeded'?'Spazio esaurito: elimina vecchi dati':'Non salvato: '+(e&&e.code==='invalid_argument'?'permesso mancante':'riprova'))}};
 
 document.addEventListener('click',ev=>{
