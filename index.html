@@ -153,6 +153,8 @@ summary .n{font:600 20px Fredoka,sans-serif;flex:1 1 8em}
 .dico{font-size:30px;line-height:1}
 .dci>div{flex:1 1 calc(100% - 50px)}.dci .kbtn{margin-left:42px}
 input[type=file]{padding:9px;background:#fff}
+.alertm{background:linear-gradient(160deg,#ffe3ec,#fff1d6);border-color:#f5b9c8;box-shadow:0 6px 0 #f2c6d2}
+.alertm .bell{animation:ring 2.4s ease-in-out infinite}
 </style></head><body>
 <header class="top">
   <div class="row"><h1>Diario dell'asilo</h1><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="role" id="logout" hidden>Esci</button></span></div>
@@ -444,10 +446,17 @@ function msgForm(k){
 }
 
 /* ---------- MAESTRA ---------- */
+let msgSeen=0;try{msgSeen=+localStorage.getItem('asilo-msgseen')||0}catch(e){}
+function newMsgsBox(){
+  const nm=pendingMsgs().filter(m=>+m.ts>msgSeen);if(!nm.length)return '';
+  return `<div class="news alertm"><div class="nt"><span class="bell" aria-hidden="true">🔔</span><h3>${nm.length===1?'Nuovo avviso':'Nuovi avvisi'} dai genitori</h3></div>
+  <div class="list">${nm.map(m=>`<div class="msg"><span class="tag">${esc(m.tipo)}</span><b>${esc(kidName(m.bambino))}</b> · ${esc(fmt(m.data,{weekday:'short',day:'numeric',month:'short'}))}<div>${esc(m.testo)}</div></div>`).join('')}</div>
+  <button class="btn" data-msgseen="1">Ok, visto</button></div>`;
+}
 function teacherView(){
   const nMsg=pendingMsgs().length;
   const tabs=[['diario','Diario'],['menu','Menù'],['att','Attività ed eventi'],['docs','Documenti'],['bimbi','Bambini'],['msg','Avvisi genitori'+(nMsg?` (${nMsg})`:'')]];
-  const t=`${S.preview?'':''}<div class="tabs" role="tablist">${tabs.map(([id,l])=>`<button class="tab" role="tab" data-tab="${id}" aria-selected="${S.tab===id}">${esc(l)}</button>`).join('')}</div>`;
+  const t=`${newMsgsBox()}<div class="tabs" role="tablist">${tabs.map(([id,l])=>`<button class="tab" role="tab" data-tab="${id}" aria-selected="${S.tab===id}">${esc(l)}</button>`).join('')}</div>`;
   const body={diario:tDiary,menu:tMenu,att:tAtt,docs:tDocs,bimbi:tKids,msg:tMsgs}[S.tab]();
   return t+body;
 }
@@ -558,6 +567,7 @@ document.addEventListener('click',ev=>{
   if(b.dataset.edit){S.editKid=S.editKid===b.dataset.edit?null:b.dataset.edit;S.armed=null;render();return}
   if(b.dataset.openDoc){openDoc(b.dataset.openDoc);return}
   if(b.dataset.delDoc){const id=b.dataset.delDoc;if(S.armed!=='D'+id){S.armed='D'+id;render();return}S.armed=null;safe(()=>delDoc(id),'Documento eliminato');return}
+  if(b.dataset.msgseen){msgSeen=Date.now();try{localStorage.setItem('asilo-msgseen',String(msgSeen))}catch(e){}render();return}
   if(b.dataset.save){saveKid(b.dataset.save);return}
   if(b.dataset.copymsg){const k=S.kids.find(x=>x.id===b.dataset.copymsg);if(k)navigator.clipboard.writeText(msgOf(k)).then(()=>flash('Messaggio copiato: incollalo su WhatsApp'),()=>flash('Copia non riuscita'));return}
   if(b.dataset.copy){const k=S.kids.find(x=>x.id===b.dataset.copy);if(k)navigator.clipboard.writeText(linkOf(k)).then(()=>flash('Link copiato: '+k.nome),()=>flash('Tieni premuto sul link per copiarlo'));return}
